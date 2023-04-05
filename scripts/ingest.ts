@@ -1,18 +1,29 @@
 import { Client } from 'pg'
 import { readChatHistoryDump, getMessageText } from '../src/chat_history'
-
-const pg = new Client({
-  connectionString: process.env.DATABASE_URL,
-})
+import { getAppConfig } from '../src/config'
 
 async function main() {
+  const config = getAppConfig()
+  const pg = new Client({
+    connectionString: config.databaseUrl,
+  })
+  const { OpenAIEmbeddings } = await import('langchain/embeddings');
+  const embeddings = new OpenAIEmbeddings({
+    openAIApiKey: config.openAIApiKey,
+  });
+
   const dump = await readChatHistoryDump('./data/chat-logs.json')
 
   await pg.connect()
 
+  const prevIngestedIds = await getPrevIngestedIds(pg)
+
   let ingested = 0;
 
-  for (const message of dump.messages.slice(0, 30)) {
+  for (const message of dump.messages.slice(0, 200)) {
+    if (prevIngestedIds.has(message.id)) {
+      continue
+    }
     if (message.type === 'service') {
       continue
     }
@@ -20,9 +31,12 @@ async function main() {
     if (!text) {
       continue
     }
-    await pg.query('INSERT INTO messages (body, text) VALUES ($1, $2)', [
+    const documents = await embeddings.embedDocuments([text])
+    await pg.query('INSERT INTO messages (id, body, text, embeddings) VALUES ($1, $2, $3, $4)', [
+      message.id,
       JSON.stringify(message),
       text,
+      JSON.stringify(documents[0]),
     ])
     ingested += 1
   }
@@ -39,10 +53,8 @@ main()
     process.exit(1)
   })
 
-// import { OpenAI } from "langchain";
+async function getPrevIngestedIds(pg: Client): Promise<Set<number>> {
+  const res = await pg.query<{id: number}>('SELECT id FROM messages')
 
-// const model = new OpenAI({ openAIApiKey: process.env.OPENAI_API_KEY, temperature: 0.9 });
-// const res = await model.call(
-//     "What would be a good company name a company that makes colorful socks?"
-//   );
-//   console.log(res);
+  return new Set(res.rows.map(row => row.id))
+}

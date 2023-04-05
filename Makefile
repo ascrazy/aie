@@ -18,6 +18,8 @@ db-reset:
 	docker compose rm
 	docker volume rm aie_db-data
 
+db-renew: db-reset db-migrate
+
 chown:
 	sudo chown -R ialex:ialex .
 

@@ -1,9 +1,18 @@
 import { promises as fs } from 'fs'
+import { Client } from 'pg'
+
+const pg = new Client({
+  connectionString: process.env.DATABASE_URL,
+})
 
 async function main() {
-  const data = JSON.parse(await fs.readFile('./data/chat-logs.json', 'utf8'))
+  await pg.connect()
 
-  console.log(data.messages[0])
+  const res = await pg.query('SELECT id, body FROM messages LIMIT 10')
+
+  console.table(res.rows[0].body)
+
+  await pg.end()
 }
 
 main()
@@ -12,11 +21,3 @@ main()
     console.error(err)
     process.exit(1)
   })
-
-// import { OpenAI } from "langchain";
-
-// const model = new OpenAI({ openAIApiKey: process.env.OPENAI_API_KEY, temperature: 0.9 });
-// const res = await model.call(
-//     "What would be a good company name a company that makes colorful socks?"
-//   );
-//   console.log(res);

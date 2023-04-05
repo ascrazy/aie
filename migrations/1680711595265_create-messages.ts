@@ -6,7 +6,7 @@ export const shorthands: ColumnDefinitions | undefined = undefined;
 export async function up(pgm: MigrationBuilder): Promise<void> {
   pgm.createTable('messages', {
     id: 'id',
-    raw: {
+    body: {
       type: 'jsonb',
       notNull: true
     }
@@ -14,11 +14,5 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
 }
 
 export async function down(pgm: MigrationBuilder): Promise<void> {
-  pgm.createTable('messages', {
-    id: 'id',
-    raw: {
-      type: 'jsonb',
-      notNull: true
-    }
-  })
+  pgm.dropTable('messages')
 }

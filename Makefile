@@ -4,6 +4,9 @@ install:
 start:
 	docker compose run --rm app npm start
 
+ingest:
+	docker compose run --rm app npm run ingest
+
 sh:
 	docker compose run --rm app /bin/sh
 
@@ -17,3 +20,6 @@ db-reset:
 
 chown:
 	sudo chown -R ialex:ialex .
+
+psql:
+	docker compose run -e PGPASSWORD=hello --rm db psql -h db -U postgres

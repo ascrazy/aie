@@ -1,4 +1,6 @@
 import { Client } from 'pg'
+import ProgressBar from 'progress'
+
 import { readChatHistoryDump, getMessageText } from '../src/chat_history'
 import { getAppConfig } from '../src/config'
 
@@ -19,8 +21,10 @@ async function main() {
   const prevIngestedIds = await getPrevIngestedIds(pg)
 
   let ingested = 0;
+  const bar = new ProgressBar('ingesting [:bar] :percent', {total: 300})
 
-  for (const message of dump.messages.slice(0, 200)) {
+  for (const message of dump.messages.slice(0, 300)) {
+    bar.tick()
     if (prevIngestedIds.has(message.id)) {
       continue
     }

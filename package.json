@@ -7,9 +7,11 @@
   "dependencies": {
     "@types/node": "^18.15.11",
     "@types/pg": "^8.6.6",
+    "@types/progress": "^2.0.5",
     "langchain": "^0.0.47",
     "node-pg-migrate": "^6.2.2",
     "pg": "^8.10.0",
+    "progress": "^2.0.3",
     "ts-node": "^10.9.1",
     "typescript": "^5.0.3"
   }

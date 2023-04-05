@@ -1,5 +1,6 @@
 import { promises as fs } from 'fs'
 import { Client } from 'pg'
+import { DBMessage, toFormat } from './src/db_schema'
 
 const pg = new Client({
   connectionString: process.env.DATABASE_URL,
@@ -8,9 +9,9 @@ const pg = new Client({
 async function main() {
   await pg.connect()
 
-  const res = await pg.query('SELECT id, body FROM messages LIMIT 10')
+  const res = await pg.query<DBMessage>('SELECT id, body, text FROM messages LIMIT 10')
 
-  console.table(res.rows[0].body)
+  console.table(res.rows.map(row => toFormat(row)))
 
   await pg.end()
 }

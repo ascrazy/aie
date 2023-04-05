@@ -1,18 +1,33 @@
-import { promises as fs } from 'fs'
 import { Client } from 'pg'
+import { readChatHistoryDump, getMessageText } from '../src/chat_history'
 
 const pg = new Client({
   connectionString: process.env.DATABASE_URL,
 })
 
 async function main() {
-  const data = JSON.parse(await fs.readFile('./data/chat-logs.json', 'utf8'))
+  const dump = await readChatHistoryDump('./data/chat-logs.json')
 
   await pg.connect()
 
-  for (const message of data.messages.slice(0, 10)) {
-    await pg.query('INSERT INTO messages (body) VALUES ($1)', [JSON.stringify(message)])
+  let ingested = 0;
+
+  for (const message of dump.messages.slice(0, 30)) {
+    if (message.type === 'service') {
+      continue
+    }
+    const text = getMessageText(message)
+    if (!text) {
+      continue
+    }
+    await pg.query('INSERT INTO messages (body, text) VALUES ($1, $2)', [
+      JSON.stringify(message),
+      text,
+    ])
+    ingested += 1
   }
+
+  console.log(`Ingested ${ingested} messages`)
 
   await pg.end()
 }

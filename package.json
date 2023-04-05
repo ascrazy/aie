@@ -1,6 +1,7 @@
 {
+  "main": "./scripts/main.ts",
   "scripts": {
-    "start": "ts-node --esm ./main.ts",
+    "start": "ts-node --esm ./scripts/main.ts",
     "ingest": "ts-node --esm ./scripts/ingest.ts",
     "migrate": "ts-node node_modules/.bin/node-pg-migrate -j ts"
   },

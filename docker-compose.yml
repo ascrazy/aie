@@ -1,0 +1,11 @@
+version: '3.2'
+services:
+  app:
+    image: node:19-alpine
+    working_dir: /app/aie
+    volumes:
+      - .:/app/aie
+    command: npm start
+    env_file:
+      - .env
+      - .env.local

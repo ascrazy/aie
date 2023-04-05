@@ -1,0 +1,12 @@
+{
+  "type": "module",
+  "scripts": {
+    "start": "ts-node --esm ./main.ts"
+  },
+  "dependencies": {
+    "@types/node": "^18.15.11",
+    "langchain": "^0.0.47",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.0.3"
+  }
+}

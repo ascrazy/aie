@@ -3,7 +3,8 @@
   "scripts": {
     "start": "ts-node --esm ./scripts/main-v2.ts",
     "ingest": "ts-node --esm ./scripts/ingest-v2.ts",
-    "migrate": "ts-node node_modules/.bin/node-pg-migrate -j ts"
+    "migrate": "ts-node node_modules/.bin/node-pg-migrate -j ts",
+    "prepare": "husky install"
   },
   "dependencies": {
     "@types/node": "^18.15.11",
@@ -17,6 +18,11 @@
     "typescript": "^5.0.3"
   },
   "devDependencies": {
+    "husky": "^8.0.3",
+    "lint-staged": "^13.2.0",
     "prettier": "2.8.7"
+  },
+  "lint-staged": {
+    "**/*": "prettier --write --ignore-unknown"
   }
 }

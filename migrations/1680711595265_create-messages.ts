@@ -8,11 +8,11 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
     id: 'id',
     body: {
       type: 'jsonb',
-      notNull: true
-    }
-  })
+      notNull: true,
+    },
+  });
 }
 
 export async function down(pgm: MigrationBuilder): Promise<void> {
-  pgm.dropTable('messages')
+  pgm.dropTable('messages');
 }

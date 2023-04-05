@@ -12,15 +12,15 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
     },
     metadata: {
       type: 'jsonb',
-      notNull: true
+      notNull: true,
     },
     embeddings: {
       type: 'vector(1536)',
-      notNull: true
-    }
-  })
+      notNull: true,
+    },
+  });
 }
 
 export async function down(pgm: MigrationBuilder): Promise<void> {
-  pgm.dropTable('documents')
+  pgm.dropTable('documents');
 }

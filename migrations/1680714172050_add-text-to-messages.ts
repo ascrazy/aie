@@ -7,11 +7,11 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
   pgm.addColumn('messages', {
     text: {
       type: 'text',
-      notNull: true
-    }
-  })
+      notNull: true,
+    },
+  });
 }
 
 export async function down(pgm: MigrationBuilder): Promise<void> {
-  pgm.dropColumn('messages', 'text')
+  pgm.dropColumn('messages', 'text');
 }

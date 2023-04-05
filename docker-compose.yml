@@ -9,3 +9,21 @@ services:
     env_file:
       - .env
       - .env.local
+    networks:
+      - backend
+    depends_on:
+      - db
+  db:
+    image: postgres
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=hello
+    networks:
+      - backend
+
+networks:
+  backend: null
+
+volumes:
+  db-data: null

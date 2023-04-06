@@ -5,7 +5,7 @@ export type AppConfig = {
 
 export const getAppConfig = () => {
   return {
-    databaseUrl: process.env.DATABASE_URL,
-    openAIApiKey: process.env.OPENAI_API_KEY,
+    databaseUrl: process.env.DATABASE_URL ?? '',
+    openAIApiKey: process.env.OPENAI_API_KEY ?? '',
   };
 };

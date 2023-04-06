@@ -1,4 +1,3 @@
-import { Client } from 'pg';
 import { OpenAIEmbeddings } from 'langchain/embeddings';
 import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
 
@@ -8,7 +7,7 @@ import {
   Message,
 } from '../src/chat_history';
 import { getAppConfig } from '../src/config';
-import { cleanPageContent, insertDocument } from '../src/db/documents';
+import { PGVectorStore, cleanPageContent } from '../src/db/documents';
 
 const LIMIT = 5000;
 
@@ -17,11 +16,10 @@ async function main() {
   const embeddings = new OpenAIEmbeddings({
     openAIApiKey: config.openAIApiKey,
   });
-  const pg = new Client({
+  const vectorStore = new PGVectorStore(embeddings, {
     connectionString: config.databaseUrl,
+    tableName: 'documents',
   });
-  await pg.connect();
-
   const dump = await readChatHistoryDump('./data/chat-logs.json');
 
   const text = getTextFromAllMessages(dump.messages.slice(0, LIMIT));
@@ -32,19 +30,14 @@ async function main() {
 
   const documents = await splitter.createDocuments([text]);
 
-  const docs_embeddings = await embeddings.embedDocuments(
-    documents.map((doc) => cleanPageContent(doc.pageContent))
+  await vectorStore.addDocuments(
+    documents.map((doc) => {
+      return {
+        ...doc,
+        pageContent: cleanPageContent(doc.pageContent),
+      };
+    })
   );
-
-  for (let i = 0; i < docs_embeddings.length; i++) {
-    await insertDocument(pg, {
-      page_content: documents[i].pageContent,
-      metadata: documents[i].metadata,
-      embeddings: docs_embeddings[i],
-    });
-  }
-
-  await pg.end();
 }
 
 main()

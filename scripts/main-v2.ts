@@ -1,11 +1,10 @@
-import { Client } from 'pg';
 import { getAppConfig } from '../src/config';
-import { cleanPageContent, querySimilarDocuments } from '../src/db/documents';
+import { PGVectorStore } from '../src/db/documents';
 import { OpenAIEmbeddings } from 'langchain/embeddings';
 import { OpenAI } from 'langchain';
+import { RetrievalQAChain } from 'langchain/chains';
 
-const question = 'Как зарегистрировать ИП';
-const contextSize = 3;
+const question = 'Какой банк выбрать для ИП?';
 
 async function main() {
   const config = getAppConfig();
@@ -13,28 +12,24 @@ async function main() {
   const embeddings = new OpenAIEmbeddings({
     openAIApiKey: config.openAIApiKey,
   });
-  const pg = new Client({
-    connectionString: config.databaseUrl,
-  });
-  await pg.connect();
-
-  const document = await embeddings.embedQuery(question);
-
-  const context = await querySimilarDocuments(pg, document, contextSize);
 
   const model = new OpenAI({
     openAIApiKey: config.openAIApiKey,
     temperature: 0.9,
   });
-  const ans = await model.call(
-    `You are a consultant who helps people who just moved from Belarus to Poland to figure out how to open and run their own IP in Poland (JDG, jednoosobowa działalność gospodarcza po polsku)\nContext:\n${context
-      .map((row) => cleanPageContent(row.page_content))
-      .join('\n-----\n')}\nQuestion:\n${question}`
-  );
 
-  console.log(ans);
+  const vectorStore = new PGVectorStore(embeddings, {
+    connectionString: config.databaseUrl,
+    tableName: 'documents',
+  });
 
-  await pg.end();
+  const chain = RetrievalQAChain.fromLLM(model, vectorStore.asRetriever(3));
+
+  const res = await chain.call({
+    query: question,
+  });
+
+  console.log(res.text);
 }
 
 main()

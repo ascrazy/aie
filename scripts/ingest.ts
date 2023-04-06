@@ -1,5 +1,6 @@
 import { OpenAIEmbeddings } from 'langchain/embeddings';
 import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
+import { Pool } from 'pg';
 
 import {
   readChatHistoryDump,
@@ -9,20 +10,21 @@ import {
 import { getAppConfig } from '../src/config';
 import { PGVectorStore, cleanPageContent } from '../src/PGVectorStore';
 
-const LIMIT = 5000;
-
 async function main() {
   const config = getAppConfig();
+  const pg = new Pool({ connectionString: config.databaseUrl });
   const embeddings = new OpenAIEmbeddings({
     openAIApiKey: config.openAIApiKey,
   });
   const vectorStore = new PGVectorStore(embeddings, {
-    connectionString: config.databaseUrl,
-    tableName: 'documents',
+    tableName: config.ingestion.tableName,
+    connection: pg,
   });
-  const dump = await readChatHistoryDump('./data/chat-logs.json');
+  const dump = await readChatHistoryDump(config.ingestion.dumpPath);
 
-  const text = getTextFromAllMessages(dump.messages.slice(0, LIMIT));
+  const text = getTextFromAllMessages(
+    dump.messages.slice(0, config.ingestion.limit)
+  );
 
   const splitter = new RecursiveCharacterTextSplitter({
     chunkSize: 1000,

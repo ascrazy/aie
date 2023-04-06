@@ -1,32 +1,24 @@
 import { Document } from 'langchain/document';
 import { Embeddings } from 'langchain/embeddings';
 import { VectorStore } from 'langchain/vectorstores';
-import { Client } from 'pg';
+import { Pool } from 'pg';
 
 export const cleanPageContent = (pageContent: string): string => {
   return pageContent.replace(/\n/g, ' ');
 };
 
 type DBConfig = {
-  connectionString: string;
+  connection: Pool;
   tableName: string;
 };
 
 export class PGVectorStore extends VectorStore {
   dbConfig: DBConfig;
-  dbClient: Client;
   numDimensions = 1536;
 
-  constructor(
-    embeddings: Embeddings,
-    dbConfig: {
-      connectionString: string;
-      tableName: string;
-    }
-  ) {
+  constructor(embeddings: Embeddings, dbConfig: DBConfig) {
     super(embeddings, dbConfig);
     this.dbConfig = dbConfig;
-    this.dbClient = new Client(dbConfig);
   }
 
   async addDocuments(documents: Document[]): Promise<void> {
@@ -50,24 +42,15 @@ export class PGVectorStore extends VectorStore {
         `Vectors must have the same length as the number of dimensions (${this.numDimensions})`
       );
     }
-    try {
-      await this.dbClient.connect();
-
-      for (let i = 0; i < vectors.length; i += 1) {
-        await this.dbClient.query(
-          `INSERT INTO ${this.dbConfig.tableName} (page_content, metadata, embeddings) VALUES ($1, $2, $3)`,
-          [
-            documents[i].pageContent,
-            JSON.stringify(documents[i].metadata),
-            JSON.stringify(vectors[i]),
-          ]
-        );
-      }
-
-      await this.dbClient.end();
-    } catch (err) {
-      await this.dbClient.end();
-      throw err;
+    for (let i = 0; i < vectors.length; i += 1) {
+      await this.dbConfig.connection.query(
+        `INSERT INTO ${this.dbConfig.tableName} (page_content, metadata, embeddings) VALUES ($1, $2, $3)`,
+        [
+          documents[i].pageContent,
+          JSON.stringify(documents[i].metadata),
+          JSON.stringify(vectors[i]),
+        ]
+      );
     }
   }
 
@@ -77,28 +60,22 @@ export class PGVectorStore extends VectorStore {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     filter?: object
   ): Promise<[Document, number][]> {
-    try {
-      await this.dbClient.connect();
-      const res = await this.dbClient.query<{
-        page_content: string;
-        metadata: object;
-        distance: number;
-      }>(
-        `SELECT page_content, metadata, embeddings <-> $1 AS distance FROM ${this.dbConfig.tableName} ORDER BY distance LIMIT $2`,
-        [JSON.stringify(query), k]
-      );
-      return res.rows.map((item) => {
-        return [
-          {
-            pageContent: cleanPageContent(item.page_content),
-            metadata: item.metadata,
-          },
-          item.distance,
-        ];
-      });
-    } catch (err) {
-      await this.dbClient.end();
-      throw err;
-    }
+    const res = await this.dbConfig.connection.query<{
+      page_content: string;
+      metadata: object;
+      distance: number;
+    }>(
+      `SELECT page_content, metadata, embeddings <-> $1 AS distance FROM ${this.dbConfig.tableName} ORDER BY distance LIMIT $2`,
+      [JSON.stringify(query), k]
+    );
+    return res.rows.map((item) => {
+      return [
+        {
+          pageContent: cleanPageContent(item.page_content),
+          metadata: item.metadata,
+        },
+        item.distance,
+      ];
+    });
   }
 }

@@ -1,13 +1,17 @@
-import { getAppConfig } from '../src/config';
-import { PGVectorStore } from '../src/PGVectorStore';
 import { OpenAIEmbeddings } from 'langchain/embeddings';
 import { OpenAI } from 'langchain';
 import { RetrievalQAChain } from 'langchain/chains';
+import { Pool } from 'pg';
+
+import { getAppConfig } from '../src/config';
+import { PGVectorStore } from '../src/PGVectorStore';
 
 const question = 'Какой банк выбрать для ИП?';
 
 async function main() {
   const config = getAppConfig();
+
+  const pg = new Pool({ connectionString: config.databaseUrl });
 
   const embeddings = new OpenAIEmbeddings({
     openAIApiKey: config.openAIApiKey,
@@ -19,8 +23,8 @@ async function main() {
   });
 
   const vectorStore = new PGVectorStore(embeddings, {
-    connectionString: config.databaseUrl,
-    tableName: 'documents',
+    connection: pg,
+    tableName: config.ingestion.tableName,
   });
 
   const chain = RetrievalQAChain.fromLLM(model, vectorStore.asRetriever(3));

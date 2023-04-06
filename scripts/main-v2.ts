@@ -1,14 +1,14 @@
 import { Client } from 'pg';
 import { getAppConfig } from '../src/config';
 import { cleanPageContent, querySimilarDocuments } from '../src/db/documents';
+import { OpenAIEmbeddings } from 'langchain/embeddings';
+import { OpenAI } from 'langchain';
 
-const question = 'Какой банк выбрать для ИП';
+const question = 'Как зарегистрировать ИП';
 const contextSize = 3;
 
 async function main() {
   const config = getAppConfig();
-  const { OpenAIEmbeddings } = await import('langchain/embeddings');
-  const { OpenAI } = await import('langchain');
 
   const embeddings = new OpenAIEmbeddings({
     openAIApiKey: config.openAIApiKey,
@@ -27,7 +27,7 @@ async function main() {
     temperature: 0.9,
   });
   const ans = await model.call(
-    `Context:\n${context
+    `You are a consultant who helps people who just moved from Belarus to Poland to figure out how to open and run their own IP in Poland (JDG, jednoosobowa działalność gospodarcza po polsku)\nContext:\n${context
       .map((row) => cleanPageContent(row.page_content))
       .join('\n-----\n')}\nQuestion:\n${question}`
   );

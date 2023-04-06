@@ -1,5 +1,6 @@
 import { Client } from 'pg';
 import ProgressBar from 'progress';
+import { OpenAIEmbeddings } from 'langchain/embeddings';
 
 import { readChatHistoryDump, getMessageText } from '../src/chat_history';
 import { getAppConfig } from '../src/config';
@@ -11,7 +12,6 @@ async function main() {
   const pg = new Client({
     connectionString: config.databaseUrl,
   });
-  const { OpenAIEmbeddings } = await import('langchain/embeddings');
   const embeddings = new OpenAIEmbeddings({
     openAIApiKey: config.openAIApiKey,
   });

@@ -1,4 +1,6 @@
 import { Client } from 'pg';
+import { OpenAIEmbeddings } from 'langchain/embeddings';
+import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
 
 import {
   readChatHistoryDump,
@@ -12,10 +14,6 @@ const LIMIT = 5000;
 
 async function main() {
   const config = getAppConfig();
-  const { OpenAIEmbeddings } = await import('langchain/embeddings');
-  const { RecursiveCharacterTextSplitter } = await import(
-    'langchain/text_splitter'
-  );
   const embeddings = new OpenAIEmbeddings({
     openAIApiKey: config.openAIApiKey,
   });

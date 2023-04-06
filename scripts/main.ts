@@ -1,14 +1,13 @@
 import { Client } from 'pg';
 import { DBMessage } from '../src/db_schema';
 import { getAppConfig } from '../src/config';
-
+import { OpenAIEmbeddings } from 'langchain/embeddings';
+import { OpenAI } from 'langchain';
 const question = 'Какой банк выбрать для ИП';
 const contextSize = 10;
 
 async function main() {
   const config = getAppConfig();
-  const { OpenAIEmbeddings } = await import('langchain/embeddings');
-  const { OpenAI } = await import('langchain');
 
   const embeddings = new OpenAIEmbeddings({
     openAIApiKey: config.openAIApiKey,

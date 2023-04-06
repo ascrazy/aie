@@ -71,10 +71,10 @@ export class PGVectorStore extends VectorStore {
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async similaritySearchVectorWithScore(
     query: number[],
     k: number,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     filter?: object
   ): Promise<[Document, number][]> {
     try {

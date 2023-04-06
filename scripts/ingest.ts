@@ -1,53 +1,43 @@
-import { Client } from 'pg';
-import ProgressBar from 'progress';
 import { OpenAIEmbeddings } from 'langchain/embeddings';
+import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
 
-import { readChatHistoryDump, getMessageText } from '../src/chat_history';
+import {
+  readChatHistoryDump,
+  getMessageText,
+  Message,
+} from '../src/chat_history';
 import { getAppConfig } from '../src/config';
+import { PGVectorStore, cleanPageContent } from '../src/PGVectorStore';
 
 const LIMIT = 5000;
 
 async function main() {
   const config = getAppConfig();
-  const pg = new Client({
-    connectionString: config.databaseUrl,
-  });
   const embeddings = new OpenAIEmbeddings({
     openAIApiKey: config.openAIApiKey,
   });
-
+  const vectorStore = new PGVectorStore(embeddings, {
+    connectionString: config.databaseUrl,
+    tableName: 'documents',
+  });
   const dump = await readChatHistoryDump('./data/chat-logs.json');
 
-  await pg.connect();
+  const text = getTextFromAllMessages(dump.messages.slice(0, LIMIT));
 
-  const prevIngestedIds = await getPrevIngestedIds(pg);
+  const splitter = new RecursiveCharacterTextSplitter({
+    chunkSize: 1000,
+  });
 
-  let ingested = 0;
-  const bar = new ProgressBar('ingesting [:bar] :percent', { total: LIMIT });
+  const documents = await splitter.createDocuments([text]);
 
-  for (const message of dump.messages.slice(0, LIMIT)) {
-    bar.tick();
-    if (prevIngestedIds.has(message.id)) {
-      continue;
-    }
-    if (message.type === 'service') {
-      continue;
-    }
-    const text = getMessageText(message);
-    if (!text) {
-      continue;
-    }
-    const documents = await embeddings.embedDocuments([text]);
-    await pg.query(
-      'INSERT INTO messages (id, body, text, embeddings) VALUES ($1, $2, $3, $4)',
-      [message.id, JSON.stringify(message), text, JSON.stringify(documents[0])]
-    );
-    ingested += 1;
-  }
-
-  console.log(`Ingested ${ingested} messages`);
-
-  await pg.end();
+  await vectorStore.addDocuments(
+    documents.map((doc) => {
+      return {
+        ...doc,
+        pageContent: cleanPageContent(doc.pageContent),
+      };
+    })
+  );
 }
 
 main()
@@ -57,8 +47,21 @@ main()
     process.exit(1);
   });
 
-async function getPrevIngestedIds(pg: Client): Promise<Set<number>> {
-  const res = await pg.query<{ id: number }>('SELECT id FROM messages');
+function getTextFromAllMessages(messages: Message[]): string {
+  let text = '';
 
-  return new Set(res.rows.map((row) => row.id));
+  for (const message of messages) {
+    if (message.type === 'service') {
+      continue;
+    }
+    const messageText = getMessageText(message);
+    if (!messageText) {
+      continue;
+    }
+
+    text += messageText;
+    text += '\n\n';
+  }
+
+  return text;
 }

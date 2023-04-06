@@ -1,8 +1,8 @@
 {
   "main": "./scripts/main.ts",
   "scripts": {
-    "start": "ts-node --esm ./scripts/main-v2.ts",
-    "ingest": "ts-node --esm ./scripts/ingest-v2.ts",
+    "start": "ts-node --esm ./scripts/main.ts",
+    "ingest": "ts-node --esm ./scripts/ingest.ts",
     "migrate": "ts-node node_modules/.bin/node-pg-migrate -j ts",
     "prepare": "husky install"
   },

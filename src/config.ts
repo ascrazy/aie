@@ -10,7 +10,7 @@ export const getAppConfig = () => {
     ingestion: {
       limit: 5000,
       dumpPath: './data/chat-logs.json',
-      tableName: 'documents',
+      tableName: 'documents_debug',
     },
   };
 };

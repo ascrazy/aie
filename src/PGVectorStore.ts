@@ -3,10 +3,6 @@ import { Embeddings } from 'langchain/embeddings';
 import { VectorStore } from 'langchain/vectorstores';
 import { Pool } from 'pg';
 
-export const cleanPageContent = (pageContent: string): string => {
-  return pageContent.replace(/\n/g, ' ');
-};
-
 type DBConfig = {
   connection: Pool;
   tableName: string;
@@ -71,7 +67,7 @@ export class PGVectorStore extends VectorStore {
     return res.rows.map((item) => {
       return [
         {
-          pageContent: cleanPageContent(item.page_content),
+          pageContent: item.page_content,
           metadata: item.metadata,
         },
         item.distance,

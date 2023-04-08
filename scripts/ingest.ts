@@ -1,8 +1,15 @@
+import { format } from 'date-fns';
+import ProgressBar from 'progress';
+import { Pool } from 'pg';
 import { OpenAIEmbeddings } from 'langchain/embeddings';
 import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
-import { Pool } from 'pg';
+import { Document } from 'langchain/document';
 
-import { readChatHistoryDump, preprocessChatHistory } from '../src/ChatHistory';
+import {
+  readChatHistoryDump,
+  preprocessChatHistory,
+  ChatMessageType,
+} from '../src/ChatHistory';
 import { getAppConfig } from '../src/config';
 import { PGVectorStore } from '../src/PGVectorStore';
 
@@ -17,29 +24,55 @@ async function main() {
     connection: pg,
   });
   const dump = await readChatHistoryDump(config.ingestion.dumpPath);
-
-  const text = preprocessChatHistory(dump).slice(0, 1_000_000);
-
-  console.time(`RecursiveCharacterTextSplitter on ${text.length} chars`);
-
-  const splitter = new RecursiveCharacterTextSplitter({
-    chunkSize: 1000,
+  const sourceMessages = dump.messages.filter((message) => {
+    return message.date.getFullYear() >= 2023;
   });
 
-  const documents = await splitter.createDocuments([text]);
+  const grouped = {} as Record<string, ChatMessageType[]>;
 
-  console.timeEnd(`RecursiveCharacterTextSplitter on ${text.length} chars`);
+  for (const message of sourceMessages) {
+    const key = format(message.date, 'yyyy-MM');
+    if (!grouped[key]) {
+      grouped[key] = [];
+    }
+    grouped[key].push(message);
+  }
 
-  console.log(documents.slice(0, 5));
+  const bar = new ProgressBar('Ingesting :yyyyxmm [:bar] :percent :etas', {
+    total: sourceMessages.length,
+  });
 
-  await vectorStore.addDocuments(
-    documents.map((doc) => {
-      return {
-        ...doc,
-        pageContent: doc.pageContent.replace('\n', ''),
-      };
-    })
-  );
+  for (const [key, messages] of Object.entries(grouped)) {
+    bar.tick(messages.length, {
+      yyyyxmm: key,
+    });
+    const text = preprocessChatHistory(messages);
+    const splitter = new RecursiveCharacterTextSplitter({
+      chunkSize: 1000,
+    });
+    const documents = await splitter.splitDocuments([
+      new Document({
+        pageContent: text,
+        metadata: {
+          yyyyxmm: key,
+        },
+      }),
+    ]);
+
+    await vectorStore.addDocuments(
+      documents.map((doc) => {
+        return {
+          ...doc,
+          pageContent: doc.pageContent
+            // NOTE: remove newlines as ChatGPT works better with a single line
+            .replace('\n', ' ')
+            // NOTE: collapse any whitespace sequences to a single space
+            .replace(/\s\s+/g, ' ')
+            .trim(),
+        };
+      })
+    );
+  }
 }
 
 main()

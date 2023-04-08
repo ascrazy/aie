@@ -6,7 +6,7 @@ import { Pool } from 'pg';
 import { getAppConfig } from '../src/config';
 import { PGVectorStore } from '../src/PGVectorStore';
 
-const question = 'Какой банк выбрать для ИП?';
+const question = 'Как открыть ИП?';
 
 async function main() {
   const config = getAppConfig();

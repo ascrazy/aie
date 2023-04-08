@@ -34,13 +34,14 @@ const ChatHistoryDump = z.object({
           text: z.string(),
         })
       ),
+      date: z.coerce.date(),
     })
   ),
 });
 
-type ChatHistoryDumpType = z.infer<typeof ChatHistoryDump>;
+export type ChatHistoryDumpType = z.infer<typeof ChatHistoryDump>;
 
-type MessageType = ChatHistoryDumpType['messages'][0];
+export type ChatMessageType = ChatHistoryDumpType['messages'][0];
 
 export async function readChatHistoryDump(
   path: string
@@ -49,8 +50,11 @@ export async function readChatHistoryDump(
   return ChatHistoryDump.parse(JSON.parse(source));
 }
 
-export function getMessageText(message: MessageType): string {
-  const aggregatedText = message.text_entities
+export function getMessageText(
+  message: ChatMessageType,
+  { clean } = { clean: true }
+): string {
+  let text = message.text_entities
     .filter((entity) => {
       return [
         'plain',
@@ -73,13 +77,17 @@ export function getMessageText(message: MessageType): string {
     })
     .join('');
 
-  return aggregatedText;
+  if (clean) {
+    text = cleanMessageText(text);
+  }
+
+  return text;
 }
 
-export function preprocessChatHistory(dump: ChatHistoryDumpType): string {
+export function preprocessChatHistory(messages: ChatMessageType[]): string {
   const texts: string[] = [];
 
-  for (const message of dump.messages) {
+  for (const message of messages) {
     if (message.type !== 'message') {
       continue;
     }

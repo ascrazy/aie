@@ -20,8 +20,6 @@ async function main() {
 
   const text = preprocessChatHistory(dump).slice(0, 1_000_000);
 
-  console.log(text.length);
-
   console.time(`RecursiveCharacterTextSplitter on ${text.length} chars`);
 
   const splitter = new RecursiveCharacterTextSplitter({

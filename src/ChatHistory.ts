@@ -1,21 +1,5 @@
+import { z } from 'zod';
 import { promises as fs } from 'fs';
-
-export type ChatHistoryDump = {
-  id: number;
-  name: string;
-  messages: Array<Message>;
-};
-
-export type Message = {
-  id: number;
-  type: 'message' | 'service';
-  text_entities: TextEntity[];
-};
-
-type TextEntity = {
-  type: string;
-  text: string;
-};
 
 const TextEntityTypes = [
   'plain',
@@ -35,22 +19,37 @@ const TextEntityTypes = [
   'strikethrough',
   'spoiler',
   'custom_emoji',
-];
+] as const;
 
-export type MessageWithAggregatedText = Message & {
-  aggregatedText: string;
-};
+const ChatHistoryDump = z.object({
+  id: z.number(),
+  name: z.string(),
+  messages: z.array(
+    z.object({
+      id: z.number(),
+      type: z.enum(['message', 'service']),
+      text_entities: z.array(
+        z.object({
+          type: z.enum(TextEntityTypes),
+          text: z.string(),
+        })
+      ),
+    })
+  ),
+});
+
+type ChatHistoryDumpType = z.infer<typeof ChatHistoryDump>;
+
+type MessageType = ChatHistoryDumpType['messages'][0];
 
 export async function readChatHistoryDump(
   path: string
-): Promise<ChatHistoryDump> {
+): Promise<ChatHistoryDumpType> {
   const source = await fs.readFile(path, 'utf8');
-  const dump = JSON.parse(source) as ChatHistoryDump;
-  validateChatHistory(dump);
-  return dump;
+  return ChatHistoryDump.parse(JSON.parse(source));
 }
 
-export function getMessageText(message: Message): string {
+export function getMessageText(message: MessageType): string {
   const aggregatedText = message.text_entities
     .filter((entity) => {
       return [
@@ -77,7 +76,7 @@ export function getMessageText(message: Message): string {
   return aggregatedText;
 }
 
-export function preprocessChatHistory(dump: ChatHistoryDump): string {
+export function preprocessChatHistory(dump: ChatHistoryDumpType): string {
   const texts: string[] = [];
 
   for (const message of dump.messages) {
@@ -96,17 +95,4 @@ export function preprocessChatHistory(dump: ChatHistoryDump): string {
 
 export function cleanMessageText(text: string): string {
   return text.replace(/\n{2,}/g, '\n').trim();
-}
-
-export function validateChatHistory(dump: ChatHistoryDump): void {
-  for (const msg of dump.messages) {
-    if (msg.type !== 'message' && msg.type !== 'service') {
-      throw new Error(`Invalid message type: ${msg.type}`);
-    }
-    for (const entity of msg.text_entities) {
-      if (!TextEntityTypes.includes(entity.type)) {
-        throw new Error(`Invalid entity type: ${JSON.stringify(entity)}`);
-      }
-    }
-  }
 }

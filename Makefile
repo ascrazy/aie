@@ -20,6 +20,10 @@ db-reset:
 
 db-renew: db-reset db-migrate
 
+db-add-migration:
+	docker compose run --rm app npm run migrate create new_migration
+	sudo chown -R ialex:ialex ./migrations
+
 chown:
 	sudo chown -R ialex:ialex .
 

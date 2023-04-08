@@ -40,7 +40,7 @@ export class PGVectorStore extends VectorStore {
     }
     for (let i = 0; i < vectors.length; i += 1) {
       await this.dbConfig.connection.query(
-        `INSERT INTO ${this.dbConfig.tableName} (page_content, metadata, embeddings) VALUES ($1, $2, $3)`,
+        `INSERT INTO ${this.dbConfig.tableName} (page_content, metadata, embedding) VALUES ($1, $2, $3)`,
         [
           documents[i].pageContent,
           JSON.stringify(documents[i].metadata),
@@ -61,7 +61,7 @@ export class PGVectorStore extends VectorStore {
       metadata: object;
       distance: number;
     }>(
-      `SELECT page_content, metadata, embeddings <-> $1 AS distance FROM ${this.dbConfig.tableName} ORDER BY distance LIMIT $2`,
+      `SELECT page_content, metadata, embedding <-> $1 AS distance FROM ${this.dbConfig.tableName} ORDER BY distance LIMIT $2`,
       [JSON.stringify(query), k]
     );
     return res.rows.map((item) => {

@@ -94,5 +94,20 @@ export function preprocessChatHistory(dump: ChatHistoryDumpType): string {
 }
 
 export function cleanMessageText(text: string): string {
-  return text.replace(/\n{2,}/g, '\n').trim();
+  let output = text;
+
+  // NOTE: Replace any \n sequences with a single \n
+  output = output.replace(/\n{2,}/g, '\n');
+
+  // NOTE: Remove Noncharacters
+  // Credits: https://stackoverflow.com/a/41543705
+  output = output.replace(
+    /([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g,
+    ''
+  );
+
+  // NOTE: Remove any leading or trailing whitespace
+  output = output.trim();
+
+  return output;
 }
